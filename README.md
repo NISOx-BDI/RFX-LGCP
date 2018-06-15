@@ -15,7 +15,7 @@ Bayesian log-Gaussian Cox process regression: with applications to meta-analysis
 
 # Reproducing the paper's results
 
-To reproduce the results in our paper is:
+To reproduce the results in our paper:
 
 ```console
 make
