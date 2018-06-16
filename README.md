@@ -11,7 +11,7 @@ Lisa Feldman Barrett,
 Shir Atzil,
 Timothy D. Johnson,
 Thomas E. Nichols (2018).
-Bayesian log-Gaussian Cox process regression: with applications to meta-analysis of neuroimaging work- ing memory studies. _Journal of the Royal Statistical Society. Series C (Applied Statistics)_, _in press_.
+Bayesian log-Gaussian Cox process regression: with applications to meta-analysis of neuroimaging working memory studies. _Journal of the Royal Statistical Society. Series C (Applied Statistics)_, _in press_.
 
 # Reproducing the paper's results
 
