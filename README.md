@@ -21,6 +21,7 @@ To reproduce the results in our paper:
 make
 ./lgcp 7000 15000 5 50 40 15 > lgcp.log 2>&1 disown
 ```
+You will need a computer with GPU and have CUDA installed.
 
 # Manual
 
