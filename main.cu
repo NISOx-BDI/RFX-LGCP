@@ -84,7 +84,7 @@ int main (int argc , char *argv[])
 
     struct stat info;
     if (stat("./output", &info ) != 0 ) {
-        if (mkdir("./output",S_IRWXU | S_IRGRP | S_IXGRP | S_IRGRP | S_IXOTH)) {
+        if (mkdir("./output",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 	    printf("ERROR: Cannot create output directory\n");
             exit(1);
         }
