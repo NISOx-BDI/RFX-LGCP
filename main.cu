@@ -83,9 +83,9 @@ int main (int argc , char *argv[])
     }
 
     struct stat info;
-    if (stat("./output", &info ) != 0 ) {
-        if (mkdir("./output",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-	    printf("ERROR: Cannot create output directory\n");
+    if (stat("./outputs", &info ) != 0 ) {
+        if (mkdir("./outputs",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+	    printf("ERROR: Cannot create outputs directory\n");
             exit(1);
         }
     }
@@ -114,6 +114,10 @@ int main (int argc , char *argv[])
     /* Some parameters of the dataset */
     FILE *file;
     file = fopen("./inputs/setup.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/setup.txt\n");
+	    exit(1);
+    }
     fscanf(file,"%d",&HV);       // total number of elements in the initial grid. The program will figure out how many there are in the extended
     fscanf(file,"%d",&HN);       // total number of points (foci)
     fscanf(file,"%d",&HI);       // total number of point patterns (contrasts/studies)
@@ -129,6 +133,10 @@ int main (int argc , char *argv[])
     /* The device seed */
     unsigned long * RNG = (unsigned long *)calloc(3,sizeof(unsigned long));
     file = fopen("./inputs/seed.dat","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/seed.dat\n");
+	    exit(1);
+    }
     if (fscanf(file,"%lu %lu %lu\n",&(RNG[0]),&(RNG[1]),&(RNG[2]))) {}
     fclose(file);
 
@@ -325,6 +333,10 @@ int main (int argc , char *argv[])
     cudaMalloc((void**)&rho,sizeof(float)*HK);               
     float *Hrho = (float*)malloc(HK*sizeof(float));                
     file = fopen("./inputs/rho.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/rho.txt\n");
+	    exit(1);
+    }
     for (i=0 ; i<HK ; i++) {
         if( !fscanf(file,"%f",&Hrho[i]) )
             break;
@@ -336,6 +348,10 @@ int main (int argc , char *argv[])
     cudaMalloc((void**)&sigma,sizeof(float)*HK);               
     float *Hsigma = (float*)malloc(HK*sizeof(float));               
     file = fopen("./inputs/sigma.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/sigma.txt\n");
+	    exit(1);
+    }
     for (i=0 ; i<HK ; i++) {
         if( !fscanf(file,"%f",&Hsigma[i]) )
             break;
@@ -347,6 +363,10 @@ int main (int argc , char *argv[])
     cudaMalloc((void**)&beta,sizeof(float)*HK_star);  
     float *Hbeta = (float*)malloc(HK_star*sizeof(float));            
     file = fopen("./inputs/beta.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/beta.txt\n");
+	    exit(1);
+    }
     for (i=0 ; i<HK_star ; i++) {
         if( !fscanf(file,"%f",&Hbeta[i]) )
             break;
@@ -665,7 +685,15 @@ int main (int argc , char *argv[])
     epsilon = 0.00001f;
     // Open the txt file that will hold the sums
     FILE *HMCI  = fopen("./outputs/burnin.txt", "w");
+    if (HMCI==NULL) {
+	    printf("ERROR: Cannot open ./outputs/burnin.txt\n");
+	    exit(1);
+    }
     FILE *RFX   = fopen("./outputs/rfx.txt", "w");
+    if (RFX==NULL) {
+	    printf("ERROR: Cannot open ./outputs/burnin.txt\n");
+	    exit(1);
+    }
  
     // Generate random uniform numbers for the Metropolis-Hastings ratio
     curandGenerateUniform(gen , ub , Burnin);
@@ -795,7 +823,15 @@ int main (int argc , char *argv[])
     // Phase III: HMC
     // Create the file that will hold the scalars
     FILE *HMCII  = fopen("./outputs/hmc.txt", "w");
+    if (HMCII==NULL) {
+	    printf("ERROR: Cannot open ./outupts/hmc.txt\n");
+	    exit(1);
+    }
     FILE *RFXII  = fopen("./outputs/alpha.txt", "w");
+    if (RFXII==NULL) {
+	    printf("ERROR: Cannot open ./outupts/alpha.txt\n");
+	    exit(1);
+    }
 
     // Allocate depending on whether type comparisons are made
     int ngp;
@@ -901,8 +937,18 @@ int main (int argc , char *argv[])
 
      	// Save samples for the GPs
      	if ((i%Save)==0) {
+	    if (stat("./outputs/gps", &info ) != 0 ) {
+                if (mkdir("./outputs/gps",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+	            printf("ERROR: Cannot create outputs/gps directory\n");
+		    exit(1);
+		}
+	    }
             snprintf( filename, sizeof(char) * 32, "./outputs/gps/gp_%i.txt", i);
             FIELDS  = fopen(filename , "w");
+	    if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open %s\n",filename);
+		    exit(1);
+	    }
             cudaMemcpy(big  , ori_Cgamma , HK*V_extended*sizeof(float), cudaMemcpyDeviceToHost);
             cudaDeviceSynchronize();
      		for (ii=0 ; ii<V_extended ; ii++) {
@@ -941,6 +987,10 @@ int main (int argc , char *argv[])
             cudaDeviceSynchronize();
             /* voxel-wise mean and variance */
             FIELDS  = fopen("./outputs/gp_summaries.txt", "w");
+	    if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open outputs/gp_summaries.txt\n");
+		    exit(1);
+	    }
             for (ii=0 ; ii<V_extended ; ii++) {
                 if (brain_extended[ii]==1) {
                     for (kk=0 ; kk<HK ; kk++){
@@ -957,6 +1007,10 @@ int main (int argc , char *argv[])
             /* voxel-wise mean standardised posterior difference */
             if (Diff==1) {
                 FIELDS  = fopen("./outputs/gp_diff.txt", "w");
+		if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open outputs/gp_diff.txt\n");
+		    exit(1);
+		}
                 for (ii=0 ; ii<V_extended ; ii++) {
                     if (brain_extended[ii]==1) {
                         for (kk=HK ; kk<ngp ; kk++){
