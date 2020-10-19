@@ -5,6 +5,7 @@
 #include <cufft.h>
 #include <cublas.h>
 #include <curand.h>
+#include <random>
 
 #include <sys/stat.h>
 
@@ -356,11 +357,21 @@ int main (int argc , char *argv[])
     cudaMalloc((void**)&gamma,sizeof(float)*V_extended*HK);    
     float *Hgamma = (float*)malloc(V_extended*HK*sizeof(float));    
     file = fopen("./inputs/gamma.txt","r");
-    for (i=0 ; i<(HK*V_extended) ; i++) {
-        if( !fscanf(file,"%f",&Hgamma[i]) )
-            break;
+    if (file!=NULL) {
+        for (i=0 ; i<(HK*V_extended) ; i++) {
+            if( !fscanf(file,"%f",&Hgamma[i]) )
+                break;
+	}
+	fclose(file);
+    } else {
+	fprintf(stderr,"\ninputs/gamma.txt not found; using random seeds\n");
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0.0,1.0);
+        for (i=0 ; i<(HK*V_extended) ; i++) {
+	    Hgamma[i] = distribution(generator);
+	}
     }
-    fclose(file);
+	    
     cudaMemcpy(gamma,Hgamma,sizeof(float)*HK*V_extended,cudaMemcpyHostToDevice);
 
     /* RFX CHANGE */
