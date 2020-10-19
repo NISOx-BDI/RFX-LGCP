@@ -36,9 +36,6 @@ int main (int argc , char *argv[])
     printf("\n Neuroimaging CBMA via log-Gaussian Cox processes");
     printf("\n Beginning of the simulation");
 
-    // Set the device that will run the simulation
-    cudaSetDevice(1);
-
     /* Command line arguments */ 
     int Burnin = atoi(argv[1]);        // The burn-in period of the HMC         
     int Iterations = atoi(argv[2]);    // The total number of iterations AFTER burn-in
@@ -46,6 +43,13 @@ int main (int argc , char *argv[])
     int Adjust_window = atoi(argv[4]); // Chain window when adjusting the stepsize
     int Thinning = atoi(argv[5]);      // How often to save the running sum of the GPs
     int Save = atoi(argv[6]);          // How often to save snapshots of the GPs
+    int Device = 1;
+    if (argc>7)
+	    Device= atoi(argv[7]);          // How often to save snapshots of the GPs
+
+    fprintf(stderr,"\n Using Device %d\n",Device);
+    // Set the device that will run the simulation
+    cudaSetDevice(Device);
 
 
     int i, j, k, ii, kk;
