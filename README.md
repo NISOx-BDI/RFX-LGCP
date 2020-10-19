@@ -24,4 +24,43 @@ make
 
 # Manual
 
-_Coming soon!_
+At present please consult the usage:
+```
+Usage: lgcp Burnin Iters Adjust AdjustWin Thin Save [GPU]
+
+   Burnin  -- The burn-in period of the HMC
+   Iters   -- The total number of iterations AFTER burn-in
+   Adjust  -- How often to adjust the stepsize
+   AdjustWindow
+           -- Chain window when adjusting the stepsize
+   Thin    -- How often to save the running sum of the GPs
+   Save    -- How often to save snapshots of the GPs
+   GPU     -- GPU device number (defaults to 0)
+
+The following files are expected in the ./inputs directory:
+
+   setup.txt: Contains following values, one per line:
+       * Total number of elements in the initial grid. The program
+         will figure out how many there are in the extended grid
+       * Total number of points (foci)
+       * Total number of point patterns (contrasts/studies)
+       * Total number of covariates
+       * Total number of spatially varying covariates
+       * Total number of HMC leapfrog steps
+       * Seed
+       * HMC mass parameters (4 values), if one wants to see between-type
+         comparisons
+
+   seed.dat: 3 long integers
+
+   rho.txt: Correlation decay parameters, one for each spatially varying
+            covariate
+
+   sigma.txt: Marginal standard deviations, one for each spatially varying
+              covariate
+
+   beta.txt: Overall mean parameter, one for each covariate
+
+   gamma.txt: Standard normal variates, 144*192*144=3981312 for each spatially 
+              varying covariate.  If missing, random numbers are generated.
+```
