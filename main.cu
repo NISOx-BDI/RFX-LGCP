@@ -365,7 +365,7 @@ int main (int argc , char *argv[])
 	}
 	fclose(file);
     } else {
-	fprintf(stderr,"\ninputs/gamma.txt not found; using random seeds\n");
+	fprintf(stderr,"\n  inputs/gamma.txt not found; using random seeds\n");
 	std::default_random_engine generator;
 	std::normal_distribution<double> distribution(0.0,1.0);
         for (i=0 ; i<(HK*V_extended) ; i++) {
