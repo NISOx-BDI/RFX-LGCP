@@ -82,11 +82,12 @@ int main (int argc , char *argv[])
 	exit(1);
     }
 
-	if (FILE *file = fopen("./output", "r")) {
-			fclose(file);
-	} else if (mkdir("./output",755)) {
-			printf("ERROR: Cannot create output directory\n");
-			exit(1);
+    struct stat info;
+    if (stat("./output", &info ) != 0 ) {
+        if (mkdir("./output",755)) {
+	    printf("ERROR: Cannot create output directory\n");
+            exit(1);
+        }
     }
 
     printf("\n Neuroimaging CBMA via log-Gaussian Cox processes");
