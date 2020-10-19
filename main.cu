@@ -33,6 +33,53 @@ long seed;
  
 int main (int argc , char *argv[]) 
 {
+
+    if (argc==1) {
+	printf("Usage: lgcp Burnin Iters Adjust AdjustWin Thin Save [GPU]\n");
+	printf("\n");
+	printf("   Burnin  -- The burn-in period of the HMC\n");
+	printf("   Iters   -- The total number of iterations AFTER burn-in\n");
+	printf("   Adjust  -- How often to adjust the stepsize\n");
+ 	printf("   AdjustWindow\n           -- Chain window when adjusting the stepsize\n");
+ 	printf("   Thin    -- How often to save the running sum of the GPs\n");
+ 	printf("   Save    -- How often to save snapshots of the GPs\n");
+ 	printf("   GPU     -- GPU device number (defaults to 0)\n");
+ 	printf("\n");
+	printf("The following files are expected in the ./inputs directory:\n");
+ 	printf("\n");
+ 	printf("   setup.txt: Contains following values, one per line:\n");
+ 	printf("       * Total number of elements in the initial grid. The program\n");
+   	printf("         will figure out how many there are in the extended grid\n");
+   	printf("       * Total number of points (foci)\n");
+   	printf("       * Total number of point patterns (contrasts/studies)\n");
+   	printf("       * Total number of covariates\n");
+   	printf("       * Total number of spatially varying covariates\n");
+   	printf("       * Total number of HMC leapfrog steps\n");
+   	printf("       * Seed\n");
+   	printf("       * HMC mass parameters (4 values), if one wants to see between-type\n");
+   	printf("         comparisons\n");
+
+ 	printf("\n");
+ 	printf("   seed.dat: 3 long integers\n");
+
+ 	printf("\n");
+ 	printf("   rho.txt: Correlation decay parameters, one for each spatially varying\n");
+ 	printf("            covariate\n");
+
+ 	printf("\n");
+ 	printf("   sigma.txt: Marginal standard deviations, one for each spatially varying\n");
+ 	printf("              covariate\n");
+
+ 	printf("\n");
+ 	printf("   beta.txt: Overall mean parameter, one for each covariate\n");
+
+ 	printf("\n");
+ 	printf("   gamma.txt: Standard normal variates, 144*192*144=3981312 for each spatially \n");
+ 	printf("              varying covariate.  If missing, random numbers are generated.\n");
+
+	exit(1);
+    }
+
     printf("\n Neuroimaging CBMA via log-Gaussian Cox processes");
     printf("\n Beginning of the simulation");
 
