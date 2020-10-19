@@ -84,9 +84,6 @@ int main (int argc , char *argv[])
 
     struct stat info;
     if (stat("./output", &info ) != 0 ) {
-    drwxr-sr-x 2 kfh142 4096 Oct 19 18:37 inputs/.
-    drwx--s--x 2 kfh142 4096 Oct 19 19:27 output/.
-
         if (mkdir("./output",S_IRWXU | S_IRGRP | S_IXGRP | S_IRGRP | S_IXOTH)) {
 	    printf("ERROR: Cannot create output directory\n");
             exit(1);
