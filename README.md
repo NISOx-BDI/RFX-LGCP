@@ -19,8 +19,10 @@ To reproduce the results in our paper:
 
 ```console
 make
-./lgcp 7000 15000 5 50 40 15 > lgcp.log 2>&1 disown
+./lgcp 7000 15000 5 50 40 15 > lgcp.log 2>&1 &
 ```
+
+You may need to issue a `disown` command.
 
 # Manual
 
