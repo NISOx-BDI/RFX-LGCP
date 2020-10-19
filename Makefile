@@ -1,6 +1,6 @@
 CC=nvcc
-CFLAGS=-c -O3 -arch=sm_30
-LDFLAGS=-lm -O3 -lcurand -lcublas -lcudart -lcufft -arch=sm_30
+CFLAGS=-c -O3 -arch=sm_61 -std=c++11
+LDFLAGS=-lm -O3 -lcurand -lcublas -lcudart -lcufft -arch=sm_61
 SOURCES=functions.cu kernels.cu main.cu read_files.cu distance.cu randgen.cu
 OBJECTS=$(SOURCES:.cu=.o)
 EXECUTABLE=lgcp
