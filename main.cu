@@ -5,7 +5,9 @@
 #include <cufft.h>
 #include <cublas.h>
 #include <curand.h>
+#include <random>
 
+#include <sys/stat.h>
 
 #include "read_files.h"
 #include "distance.h"
@@ -33,11 +35,63 @@ long seed;
  
 int main (int argc , char *argv[]) 
 {
+
+    if (argc==1) {
+	printf("Usage: lgcp Burnin Iters Adjust AdjustWin Thin Save [GPU]\n");
+	printf("\n");
+	printf("   Burnin  -- The burn-in period of the HMC\n");
+	printf("   Iters   -- The total number of iterations AFTER burn-in\n");
+	printf("   Adjust  -- How often to adjust the stepsize\n");
+ 	printf("   AdjustWindow\n           -- Chain window when adjusting the stepsize\n");
+ 	printf("   Thin    -- How often to save the running sum of the GPs\n");
+ 	printf("   Save    -- How often to save snapshots of the GPs\n");
+ 	printf("   GPU     -- GPU device number (defaults to 0)\n");
+ 	printf("\n");
+	printf("The following files are expected in the ./inputs directory:\n");
+ 	printf("\n");
+ 	printf("   setup.txt: Contains following values, one per line:\n");
+ 	printf("       * Total number of elements in the initial grid. The program\n");
+   	printf("         will figure out how many there are in the extended grid\n");
+   	printf("       * Total number of points (foci)\n");
+   	printf("       * Total number of point patterns (contrasts/studies)\n");
+   	printf("       * Total number of covariates\n");
+   	printf("       * Total number of spatially varying covariates\n");
+   	printf("       * Total number of HMC leapfrog steps\n");
+   	printf("       * Seed\n");
+   	printf("       * HMC mass parameters (4 values), if one wants to see between-type\n");
+   	printf("         comparisons\n");
+
+ 	printf("\n");
+ 	printf("   seed.dat: 3 long integers\n");
+
+ 	printf("\n");
+ 	printf("   rho.txt: Correlation decay parameters, one for each spatially varying\n");
+ 	printf("            covariate\n");
+
+ 	printf("\n");
+ 	printf("   sigma.txt: Marginal standard deviations, one for each spatially varying\n");
+ 	printf("              covariate\n");
+
+ 	printf("\n");
+ 	printf("   beta.txt: Overall mean parameter, one for each covariate\n");
+
+ 	printf("\n");
+ 	printf("   gamma.txt: Standard normal variates, 144*192*144=3981312 for each spatially \n");
+ 	printf("              varying covariate.  If missing, random numbers are generated.\n");
+
+	exit(1);
+    }
+
+    struct stat info;
+    if (stat("./outputs", &info ) != 0 ) {
+        if (mkdir("./outputs",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+	    printf("ERROR: Cannot create outputs directory\n");
+            exit(1);
+        }
+    }
+
     printf("\n Neuroimaging CBMA via log-Gaussian Cox processes");
     printf("\n Beginning of the simulation");
-
-    // Set the device that will run the simulation
-    cudaSetDevice(1);
 
     /* Command line arguments */ 
     int Burnin = atoi(argv[1]);        // The burn-in period of the HMC         
@@ -46,6 +100,13 @@ int main (int argc , char *argv[])
     int Adjust_window = atoi(argv[4]); // Chain window when adjusting the stepsize
     int Thinning = atoi(argv[5]);      // How often to save the running sum of the GPs
     int Save = atoi(argv[6]);          // How often to save snapshots of the GPs
+    int Device = 1;
+    if (argc>7)
+	    Device= atoi(argv[7]);          // How often to save snapshots of the GPs
+
+    fprintf(stderr,"\n Using Device %d\n",Device);
+    // Set the device that will run the simulation
+    cudaSetDevice(Device);
 
 
     int i, j, k, ii, kk;
@@ -53,6 +114,10 @@ int main (int argc , char *argv[])
     /* Some parameters of the dataset */
     FILE *file;
     file = fopen("./inputs/setup.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/setup.txt\n");
+	    exit(1);
+    }
     fscanf(file,"%d",&HV);       // total number of elements in the initial grid. The program will figure out how many there are in the extended
     fscanf(file,"%d",&HN);       // total number of points (foci)
     fscanf(file,"%d",&HI);       // total number of point patterns (contrasts/studies)
@@ -64,11 +129,22 @@ int main (int argc , char *argv[])
     for (j=0 ; j<4 ; j++) { fscanf(file,"%f",&tmp_mass[j]); }
     fscanf(file,"%d",&Diff);     // If one wants to see between-type comparisons
     fclose(file);
+    if (rcnt!=12) {
+	    printf("ERROR: Cannot read all 12 lines of ./inputs/setup.txt\n");
+	    exit(1);
+    }
 
     /* The device seed */
     unsigned long * RNG = (unsigned long *)calloc(3,sizeof(unsigned long));
     file = fopen("./inputs/seed.dat","r");
-    if (fscanf(file,"%lu %lu %lu\n",&(RNG[0]),&(RNG[1]),&(RNG[2]))) {}
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/seed.dat\n");
+	    exit(1);
+    }
+    if (fscanf(file,"%lu %lu %lu\n",&(RNG[0]),&(RNG[1]),&(RNG[2]))!=3) {
+	    printf("ERROR: Cannot read all 3 elements of ./inputs/seed.txt\n");
+	    exit(1);
+    }
     fclose(file);
 
     /* If only one spatially varying intercept then there is no comparison to make */
@@ -264,44 +340,91 @@ int main (int argc , char *argv[])
     cudaMalloc((void**)&rho,sizeof(float)*HK);               
     float *Hrho = (float*)malloc(HK*sizeof(float));                
     file = fopen("./inputs/rho.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/rho.txt\n");
+	    exit(1);
+    }
+    int cnt;
+    rcnt=0;
     for (i=0 ; i<HK ; i++) {
-        if( !fscanf(file,"%f",&Hrho[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hrho[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/rho.txt\n",HK);
+	    exit(1);
+    }
     cudaMemcpy(rho,Hrho,sizeof(float)*HK,cudaMemcpyHostToDevice);
 
     // Marginal standard deviations
     cudaMalloc((void**)&sigma,sizeof(float)*HK);               
     float *Hsigma = (float*)malloc(HK*sizeof(float));               
     file = fopen("./inputs/sigma.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/sigma.txt\n");
+	    exit(1);
+    }
+    rcnt=0;
     for (i=0 ; i<HK ; i++) {
-        if( !fscanf(file,"%f",&Hsigma[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hsigma[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/sigma.txt\n",HK);
+	    exit(1);
+    }
     cudaMemcpy(sigma,Hsigma,sizeof(float)*HK,cudaMemcpyHostToDevice);
 
     // Overall mean parameters
     cudaMalloc((void**)&beta,sizeof(float)*HK_star);  
     float *Hbeta = (float*)malloc(HK_star*sizeof(float));            
     file = fopen("./inputs/beta.txt","r");
+    if (file==NULL) {
+	    printf("ERROR: Cannot open ./inputs/beta.txt\n");
+	    exit(1);
+    }
+    rcnt=0;
     for (i=0 ; i<HK_star ; i++) {
-        if( !fscanf(file,"%f",&Hbeta[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hbeta[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK_star) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/beta.txt\n",HK_star);
+	    exit(1);
+    }
     cudaMemcpy(beta,Hbeta,sizeof(float)*HK_star,cudaMemcpyHostToDevice);
 
     // Standard normal vectors
     cudaMalloc((void**)&gamma,sizeof(float)*V_extended*HK);    
     float *Hgamma = (float*)malloc(V_extended*HK*sizeof(float));    
     file = fopen("./inputs/gamma.txt","r");
-    for (i=0 ; i<(HK*V_extended) ; i++) {
-        if( !fscanf(file,"%f",&Hgamma[i]) )
-            break;
+    rcnt=0;
+    if (file!=NULL) {
+        for (i=0 ; i<(HK*V_extended) ; i++) {
+		if( !(cnt=fscanf(file,"%f",&Hgamma[i])) )
+			break;
+		rcnt+=cnt;
+	}
+	fclose(file);
+	if (rcnt!=HK*V_extended) {
+		printf("ERROR: Cannot read all %d elements of ./inputs/gamma.txt\n",HK*V_extended);
+		exit(1);
+	}
+    } else {
+	fprintf(stderr,"\n  inputs/gamma.txt not found; using random seeds\n");
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0.0,1.0);
+        for (i=0 ; i<(HK*V_extended) ; i++) {
+	    Hgamma[i] = distribution(generator);
+	}
     }
-    fclose(file);
+	    
     cudaMemcpy(gamma,Hgamma,sizeof(float)*HK*V_extended,cudaMemcpyHostToDevice);
 
     /* RFX CHANGE */
@@ -594,7 +717,15 @@ int main (int argc , char *argv[])
     epsilon = 0.00001f;
     // Open the txt file that will hold the sums
     FILE *HMCI  = fopen("./outputs/burnin.txt", "w");
+    if (HMCI==NULL) {
+	    printf("ERROR: Cannot open ./outputs/burnin.txt\n");
+	    exit(1);
+    }
     FILE *RFX   = fopen("./outputs/rfx.txt", "w");
+    if (RFX==NULL) {
+	    printf("ERROR: Cannot open ./outputs/burnin.txt\n");
+	    exit(1);
+    }
  
     // Generate random uniform numbers for the Metropolis-Hastings ratio
     curandGenerateUniform(gen , ub , Burnin);
@@ -724,7 +855,15 @@ int main (int argc , char *argv[])
     // Phase III: HMC
     // Create the file that will hold the scalars
     FILE *HMCII  = fopen("./outputs/hmc.txt", "w");
+    if (HMCII==NULL) {
+	    printf("ERROR: Cannot open ./outupts/hmc.txt\n");
+	    exit(1);
+    }
     FILE *RFXII  = fopen("./outputs/alpha.txt", "w");
+    if (RFXII==NULL) {
+	    printf("ERROR: Cannot open ./outupts/alpha.txt\n");
+	    exit(1);
+    }
 
     // Allocate depending on whether type comparisons are made
     int ngp;
@@ -830,8 +969,18 @@ int main (int argc , char *argv[])
 
      	// Save samples for the GPs
      	if ((i%Save)==0) {
+	    if (stat("./outputs/gps", &info ) != 0 ) {
+                if (mkdir("./outputs/gps",S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+	            printf("ERROR: Cannot create outputs/gps directory\n");
+		    exit(1);
+		}
+	    }
             snprintf( filename, sizeof(char) * 32, "./outputs/gps/gp_%i.txt", i);
             FIELDS  = fopen(filename , "w");
+	    if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open %s\n",filename);
+		    exit(1);
+	    }
             cudaMemcpy(big  , ori_Cgamma , HK*V_extended*sizeof(float), cudaMemcpyDeviceToHost);
             cudaDeviceSynchronize();
      		for (ii=0 ; ii<V_extended ; ii++) {
@@ -870,6 +1019,10 @@ int main (int argc , char *argv[])
             cudaDeviceSynchronize();
             /* voxel-wise mean and variance */
             FIELDS  = fopen("./outputs/gp_summaries.txt", "w");
+	    if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open outputs/gp_summaries.txt\n");
+		    exit(1);
+	    }
             for (ii=0 ; ii<V_extended ; ii++) {
                 if (brain_extended[ii]==1) {
                     for (kk=0 ; kk<HK ; kk++){
@@ -886,6 +1039,10 @@ int main (int argc , char *argv[])
             /* voxel-wise mean standardised posterior difference */
             if (Diff==1) {
                 FIELDS  = fopen("./outputs/gp_diff.txt", "w");
+		if (FIELDS==NULL) {
+		    printf("ERROR: Cannot open outputs/gp_diff.txt\n");
+		    exit(1);
+		}
                 for (ii=0 ; ii<V_extended ; ii++) {
                     if (brain_extended[ii]==1) {
                         for (kk=HK ; kk<ngp ; kk++){
