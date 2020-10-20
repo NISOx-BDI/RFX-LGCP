@@ -11,7 +11,7 @@ Lisa Feldman Barrett,
 Shir Atzil,
 Timothy D. Johnson,
 Thomas E. Nichols (2018).
-Bayesian log-Gaussian Cox process regression: with applications to meta-analysis of neuroimaging work- ing memory studies. _Journal of the Royal Statistical Society. Series C (Applied Statistics)_, _in press_.
+Bayesian log-Gaussian Cox process regression: applications to meta-analysis of neuroimaging working memory studies. _Journal of the Royal Statistical Society. Series C (Applied Statistics)_, _in press_.
 
 # Reproducing the paper's results
 
@@ -21,6 +21,7 @@ To reproduce the results in our paper:
 make
 ./lgcp 7000 15000 5 50 40 15 > lgcp.log 2>&1 &
 ```
+You will need a computer with GPU and have to [install CUDA](https://developer.nvidia.com/cuda-downloads).
 
 You may need to issue a `disown` command.
 
