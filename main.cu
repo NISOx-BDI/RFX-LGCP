@@ -129,6 +129,10 @@ int main (int argc , char *argv[])
     for (j=0 ; j<4 ; j++) { fscanf(file,"%f",&tmp_mass[j]); }
     fscanf(file,"%d",&Diff);     // If one wants to see between-type comparisons
     fclose(file);
+    if (rcnt!=12) {
+	    printf("ERROR: Cannot read all 12 lines of ./inputs/setup.txt\n");
+	    exit(1);
+    }
 
     /* The device seed */
     unsigned long * RNG = (unsigned long *)calloc(3,sizeof(unsigned long));
@@ -137,7 +141,10 @@ int main (int argc , char *argv[])
 	    printf("ERROR: Cannot open ./inputs/seed.dat\n");
 	    exit(1);
     }
-    if (fscanf(file,"%lu %lu %lu\n",&(RNG[0]),&(RNG[1]),&(RNG[2]))) {}
+    if (fscanf(file,"%lu %lu %lu\n",&(RNG[0]),&(RNG[1]),&(RNG[2]))!=3) {
+	    printf("ERROR: Cannot read all 3 elements of ./inputs/seed.txt\n");
+	    exit(1);
+    }
     fclose(file);
 
     /* If only one spatially varying intercept then there is no comparison to make */
@@ -337,11 +344,18 @@ int main (int argc , char *argv[])
 	    printf("ERROR: Cannot open ./inputs/rho.txt\n");
 	    exit(1);
     }
+    int cnt;
+    rcnt=0;
     for (i=0 ; i<HK ; i++) {
-        if( !fscanf(file,"%f",&Hrho[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hrho[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/rho.txt\n",HK);
+	    exit(1);
+    }
     cudaMemcpy(rho,Hrho,sizeof(float)*HK,cudaMemcpyHostToDevice);
 
     // Marginal standard deviations
@@ -352,11 +366,17 @@ int main (int argc , char *argv[])
 	    printf("ERROR: Cannot open ./inputs/sigma.txt\n");
 	    exit(1);
     }
+    rcnt=0;
     for (i=0 ; i<HK ; i++) {
-        if( !fscanf(file,"%f",&Hsigma[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hsigma[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/sigma.txt\n",HK);
+	    exit(1);
+    }
     cudaMemcpy(sigma,Hsigma,sizeof(float)*HK,cudaMemcpyHostToDevice);
 
     // Overall mean parameters
@@ -367,23 +387,35 @@ int main (int argc , char *argv[])
 	    printf("ERROR: Cannot open ./inputs/beta.txt\n");
 	    exit(1);
     }
+    rcnt=0;
     for (i=0 ; i<HK_star ; i++) {
-        if( !fscanf(file,"%f",&Hbeta[i]) )
-            break;
+	    if( !(cnt=fscanf(file,"%f",&Hbeta[i])) )
+		    break;
+	    rcnt+=cnt;
     }
     fclose(file);
+    if (rcnt!=HK_star) {
+	    printf("ERROR: Cannot read all %d elements of ./inputs/beta.txt\n",HK_star);
+	    exit(1);
+    }
     cudaMemcpy(beta,Hbeta,sizeof(float)*HK_star,cudaMemcpyHostToDevice);
 
     // Standard normal vectors
     cudaMalloc((void**)&gamma,sizeof(float)*V_extended*HK);    
     float *Hgamma = (float*)malloc(V_extended*HK*sizeof(float));    
     file = fopen("./inputs/gamma.txt","r");
+    rcnt=0;
     if (file!=NULL) {
         for (i=0 ; i<(HK*V_extended) ; i++) {
-            if( !fscanf(file,"%f",&Hgamma[i]) )
-                break;
+		if( !(cnt=fscanf(file,"%f",&Hgamma[i])) )
+			break;
+		rcnt+=cnt;
 	}
 	fclose(file);
+	if (rcnt!=HK*V_extended) {
+		printf("ERROR: Cannot read all %d elements of ./inputs/gamma.txt\n",HK*V_extended);
+		exit(1);
+	}
     } else {
 	fprintf(stderr,"\n  inputs/gamma.txt not found; using random seeds\n");
 	std::default_random_engine generator;
